@@ -11,14 +11,44 @@ from telegram.ext import (
 
 load_dotenv()
 
-# URL_CAT = 'https://api.thecatapi.com/v1/images/search'
-# URL_DOG = 'https://api.thedogapi.com/v1/images/search'
 token = os.getenv('TOKEN', 'token')
-# kit_dog_bot = Bot(token=token)
+ADMIN_ID = int(os.getenv('ADMIN_ID', '12345'))
 kit_dog_aplication = ApplicationBuilder().token(token).build()
+data: dict[int, dict] = {}
+
+
+def add_data(update):
+    if data.get(update.effective_chat.id) is None:
+        data[update.effective_chat.id] = {
+            'name': update.effective_chat.username,
+            'count': 0
+        }
+
+
+async def reporting(update, context):
+    if update.effective_chat.id == ADMIN_ID:
+        if data:
+            message = f'Количество гостей - {len(data)}:'
+            for user_data in data.values():
+                message += f"\n- {user_data['name']} - количество заказов: {user_data['count']}"
+            await context.bot.send_message(
+                ADMIN_ID,
+                text=message
+            )
+        else:
+            await context.bot.send_message(
+                ADMIN_ID,
+                text='Посещений нет.'
+            )
+    else:
+        await context.bot.send_message(
+            update.effective_chat.id,
+            text='Нет прав!'
+        )
 
 
 async def start(update, context):
+    add_data(update)
     message = ('Привет, я бот, который постарается улучшить твое настроение. '
                'Просто нажимай кнопки и получай удовольствие.')
     buttons = ReplyKeyboardMarkup(
@@ -33,6 +63,8 @@ async def start(update, context):
 
 
 async def send_cat_dog(update, context):
+    add_data(update)
+    data[update.effective_chat.id]['count'] += 1
     if update.effective_message.text == 'Покажи котика':
         url = 'https://api.thecatapi.com/v1/images/search'
     else:
@@ -46,8 +78,13 @@ cat_dog_handler = MessageHandler(
     filters.Text(['Покажи котика', 'Покажи собачку']),
     send_cat_dog
 )
+reporting_handler = MessageHandler(
+    filters.Text(['Отчет',]),
+    reporting
+)
 start_handler = CommandHandler('start', start)
 kit_dog_aplication.add_handler(cat_dog_handler)
+kit_dog_aplication.add_handler(reporting_handler)
 kit_dog_aplication.add_handler(start_handler)
 
 kit_dog_aplication.run_polling()
