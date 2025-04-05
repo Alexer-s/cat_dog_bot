@@ -15,6 +15,10 @@ token = os.getenv('TOKEN', 'token')
 ADMIN_ID = int(os.getenv('ADMIN_ID', '12345'))
 kit_dog_aplication = ApplicationBuilder().token(token).build()
 data: dict[int, dict] = {}
+buttons = ReplyKeyboardMarkup(
+    [['Покажи котика', 'Покажи собачку',],],
+    resize_keyboard=True
+)
 
 
 def add_data(update):
@@ -33,17 +37,20 @@ async def reporting(update, context):
                 message += f"\n- {user_data['name']} - количество заказов: {user_data['count']}"
             await context.bot.send_message(
                 ADMIN_ID,
-                text=message
+                text=message,
+                reply_markup=buttons,
             )
         else:
             await context.bot.send_message(
                 ADMIN_ID,
-                text='Посещений нет.'
+                text='Посещений нет.',
+                reply_markup=buttons,
             )
     else:
         await context.bot.send_message(
             update.effective_chat.id,
-            text='Нет прав!'
+            text='Нет прав!',
+            reply_markup=buttons,
         )
 
 
@@ -51,10 +58,6 @@ async def start(update, context):
     add_data(update)
     message = ('Привет, я бот, который постарается улучшить твое настроение. '
                'Просто нажимай кнопки и получай удовольствие.')
-    buttons = ReplyKeyboardMarkup(
-        [['Покажи котика', 'Покажи собачку',],],
-        resize_keyboard=True
-    )
     await context.bot.send_message(
         update.effective_chat.id,
         text=message,
@@ -71,7 +74,10 @@ async def send_cat_dog(update, context):
         url = 'https://api.thedogapi.com/v1/images/search'
     user_chat_id = update.effective_chat.id
     cat_photo_url = requests.get(url).json()[0].get('url')
-    await context.bot.send_photo(user_chat_id, cat_photo_url)
+    await context.bot.send_photo(
+        user_chat_id,
+        cat_photo_url,
+    )
 
 
 cat_dog_handler = MessageHandler(
